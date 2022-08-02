@@ -1,6 +1,6 @@
 import type { NextPage } from 'next'
 import { useEffect, useState } from 'react';
-import { BASE_URL, TransactionTypeString } from "../../../constants";
+import { BASE_URL, TransactionType, TransactionTypeString } from "../../../constants";
 import { Customer } from '../../../types/customer.type';
 import styles from "./ViewCustomer.module.scss";
 import {
@@ -16,7 +16,17 @@ import {
     Th,
     Thead,
     Tr,
-    VStack
+    VStack,
+    FormControl,
+    FormLabel,
+    Input,
+    Modal,
+    ModalBody,
+    ModalCloseButton,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    ModalOverlay
 } from '@chakra-ui/react'
 import { useRouter } from 'next/router';
 import { FundAllocation } from '../../../types/fundAllocation.type';
@@ -26,7 +36,151 @@ const ViewCustomer: NextPage = () => {
     const router = useRouter()
     const { id } = router.query
     const [customer, setCustomer] = useState<Customer>();
+    const [isOpen, setIsOpen] = useState(false);
+    const [selectedFundId, setSelectedFundId] = useState<number>();
+    const [transactionType, setTransactionType] = useState<TransactionType>();
+    const [amount, setAmount] = useState(0);
     const toast = useToast()
+
+    const depositWallet = (customerId: number, amount: number) => {
+        fetch(BASE_URL + "trade/deposit-wallet", {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                customerId: customerId,
+                amount: amount,
+            })
+        })
+            .then((res) => res.json())
+            .then((resp) => {
+                if (resp.success) {
+                    const updatedCustomer = resp.data as Customer;
+                    updatedCustomer.fundAllocations = customer?.fundAllocations || []; //this will not be returned
+                    setCustomer(updatedCustomer);
+                    onClose();
+                }
+                else {
+                    toast({
+                        description: resp.error.description,
+                        status: "error",
+                    })
+                }
+            });
+    }
+
+    const withdrawWallet = (customerId: number, amount: number) => {
+        fetch(BASE_URL + "trade/withdraw-wallet", {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                customerId: customerId,
+                amount: amount,
+            })
+        })
+            .then((res) => res.json())
+            .then((resp) => {
+                if (resp.success) {
+                    const updatedCustomer = resp.data as Customer;
+                    updatedCustomer.fundAllocations = customer?.fundAllocations || []; //this will not be returned
+                    setCustomer(updatedCustomer);
+                    onClose();
+                }
+                else {
+                    toast({
+                        description: resp.error.description,
+                        status: "error",
+                    })
+                }
+            });
+    }
+
+    const depositFund = (customerId: number, fundId: number, amount: number) => {
+        fetch(BASE_URL + "trade/deposit-fund", {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                customerId: customerId,
+                fundId: fundId,
+                amount: amount,
+            })
+        })
+            .then((res) => res.json())
+            .then((resp) => {
+                if (resp.success) {
+                    setCustomer(resp.data as Customer);
+                    onClose();
+                }
+                else {
+                    toast({
+                        description: resp.error.description,
+                        status: "error",
+                    })
+                }
+            });
+    }
+    const withdrawFund = (customerId: number, fundId: number, amount: number) => {
+        fetch(BASE_URL + "trade/withdraw-fund", {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                customerId: customerId,
+                fundId: fundId,
+                amount: amount,
+            })
+        })
+            .then((res) => res.json())
+            .then((resp) => {
+                if (resp.success) {
+                    setCustomer(resp.data as Customer);
+                    onClose();
+                }
+                else {
+                    toast({
+                        description: resp.error.description,
+                        status: "error",
+                    })
+                }
+            });
+    }
+
+    const openModal = (type: TransactionType, fundId?: number) => {
+        setTransactionType(type);
+        setSelectedFundId(fundId);
+        setIsOpen(true);
+    }
+    const onClose = () => {
+        setIsOpen(false);
+        setAmount(0);
+        setSelectedFundId(0);
+    }
+    const execute = () => {
+        if (customer) {
+            if (transactionType ==  TransactionType.DEPOSIT_WALLET) {
+                depositWallet(customer.id, amount)
+            }
+            else if (transactionType ==  TransactionType.WITHDRAW_WALLET) {
+                withdrawWallet(customer.id, amount)
+            }
+            else if (transactionType ==  TransactionType.DEPOSIT_FUND && selectedFundId) {
+                depositFund(customer.id, selectedFundId, amount)
+            }
+            else if (transactionType ==  TransactionType.WITHDRAW_FUND && selectedFundId) {
+                withdrawFund(customer.id, selectedFundId, amount)
+            }
+        }
+    }
 
     useEffect(() => {
         fetch(BASE_URL + "customer/" + id)
@@ -49,6 +203,8 @@ const ViewCustomer: NextPage = () => {
                             <Text>Name: {customer.name}</Text>
                             <Text>Email: {customer.emailAddress}</Text>
                             <Text>Wallet Balance: {customer.accountWalletAmount}</Text>
+                            <Button onClick={() => openModal(TransactionType.DEPOSIT_WALLET)}>Deposit Wallet</Button>
+                            <Button onClick={() => openModal(TransactionType.WITHDRAW_WALLET)}>Withdraw Wallet</Button>
                         </Flex>
                         <Text fontSize='2xl'>Invested Funds</Text>
                         <TableContainer>
@@ -77,8 +233,8 @@ const ViewCustomer: NextPage = () => {
                                                         <Td>{fundAllocation.userInvestedBalance}</Td>
                                                         <Td>{fundAllocation.fundInvestmentBalance}</Td>
                                                         <Td>
-                                                            <Button>Deposit</Button>
-                                                            <Button>Withdraw</Button>
+                                                            <Button onClick={() => {openModal(TransactionType.DEPOSIT_FUND); setSelectedFundId(fundAllocation.id)}}>Deposit</Button>
+                                                            <Button onClick={() => {openModal(TransactionType.WITHDRAW_FUND); setSelectedFundId(fundAllocation.id)}}>Withdraw</Button>
                                                         </Td>
                                                     </Tr>
                                                 );
@@ -120,6 +276,30 @@ const ViewCustomer: NextPage = () => {
                             </Table>
                         </TableContainer>
                     </VStack>
+                    <Modal
+                        isOpen={isOpen}
+                        onClose={onClose}
+                    >
+                        <ModalOverlay />
+                        <ModalContent>
+                            <ModalHeader>Enter Amount</ModalHeader>
+                            <ModalCloseButton />
+
+                            <ModalBody pb={6}>
+                                <FormControl mt={4}>
+                                    <FormLabel>Amount</FormLabel>
+                                    <Input type="number" onChange={(e) => { setAmount((parseFloat(e.target.value)) as number) }} />
+                                </FormControl>
+                            </ModalBody>
+
+                            <ModalFooter>
+                                <Button onClick={execute} colorScheme='blue' mr={3}>
+                                    Execute
+                                </Button>
+                                <Button onClick={onClose}>Cancel</Button>
+                            </ModalFooter>
+                        </ModalContent>
+                    </Modal>
                 </div>
             )}
         </>

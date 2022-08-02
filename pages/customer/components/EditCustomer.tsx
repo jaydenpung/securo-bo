@@ -41,7 +41,7 @@ const EditCustomer: React.FC<{
         >
             <ModalOverlay />
             <ModalContent>
-                <ModalHeader>Add Customer</ModalHeader>
+                <ModalHeader>{customer.id? "Update Customer": "Add Customer"}</ModalHeader>
                 <ModalCloseButton />
 
                 <ModalBody pb={6}>
