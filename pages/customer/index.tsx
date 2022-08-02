@@ -12,7 +12,8 @@ import {
   Td,
   TableContainer,
   Button,
-  useToast
+  useToast,
+  Link
 } from '@chakra-ui/react'
 import EditCustomer from './components/EditCustomer';
 
@@ -149,7 +150,9 @@ const Customer: NextPage = () => {
                       <Td>{customer.emailAddress}</Td>
                       <Td>{customer.accountWalletAmount}</Td>
                       <Td>
-                        <Button>View</Button>
+                        <Link href={`customer/view?id=${customer.id}`}>
+                          <Button>View</Button>
+                        </Link>
                         <Button onClick={()=>openCustomerModal(customer)}>Edit</Button>
                         <Button onClick={()=>deleteCustomer(customer.id)}>Delete</Button>
                       </Td>
