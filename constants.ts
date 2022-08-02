@@ -1,4 +1,4 @@
-export const BASE_URL = "https://ssh.jaypung.com:8000/"
+export const BASE_URL = "https://securo-demo.herokuapp.com/"
 
 export enum TransactionType {
     DEPOSIT_WALLET,
