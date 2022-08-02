@@ -7,4 +7,5 @@ export type TradeHistory = {
     transactionAmount: number,
     transactionDate: Date,
     transactionType: TransactionType,
+    fundId: number,
 }

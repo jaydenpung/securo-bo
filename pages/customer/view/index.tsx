@@ -26,18 +26,22 @@ import {
     ModalContent,
     ModalFooter,
     ModalHeader,
-    ModalOverlay
+    ModalOverlay,
+    Select
 } from '@chakra-ui/react'
 import { useRouter } from 'next/router';
 import { FundAllocation } from '../../../types/fundAllocation.type';
 import { TradeHistory } from '../../../types/tradeHistory.type';
+import { Fund } from '../../../types/fund.type';
 
 const ViewCustomer: NextPage = () => {
     const router = useRouter()
     const { id } = router.query
     const [customer, setCustomer] = useState<Customer>();
+    const [funds, setFunds] = useState<Fund[]>();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedFundId, setSelectedFundId] = useState<number>();
+    const [newFundId, setNewFundId] = useState<number>();
     const [transactionType, setTransactionType] = useState<TransactionType>();
     const [amount, setAmount] = useState(0);
     const toast = useToast()
@@ -164,19 +168,24 @@ const ViewCustomer: NextPage = () => {
         setIsOpen(false);
         setAmount(0);
         setSelectedFundId(0);
+        setNewFundId(0);
     }
     const execute = () => {
         if (customer) {
-            if (transactionType ==  TransactionType.DEPOSIT_WALLET) {
+            console.log(selectedFundId)
+            if (transactionType == TransactionType.DEPOSIT_WALLET) {
                 depositWallet(customer.id, amount)
             }
-            else if (transactionType ==  TransactionType.WITHDRAW_WALLET) {
+            else if (transactionType == TransactionType.WITHDRAW_WALLET) {
                 withdrawWallet(customer.id, amount)
             }
-            else if (transactionType ==  TransactionType.DEPOSIT_FUND && selectedFundId) {
-                depositFund(customer.id, selectedFundId, amount)
+            else if (transactionType == TransactionType.DEPOSIT_FUND) {
+                const fundId = selectedFundId || newFundId
+                if (fundId) {
+                    depositFund(customer.id, fundId, amount)
+                }
             }
-            else if (transactionType ==  TransactionType.WITHDRAW_FUND && selectedFundId) {
+            else if (transactionType == TransactionType.WITHDRAW_FUND && selectedFundId) {
                 withdrawFund(customer.id, selectedFundId, amount)
             }
         }
@@ -187,6 +196,11 @@ const ViewCustomer: NextPage = () => {
             .then((res) => res.json())
             .then((data) => {
                 setCustomer(data.data)
+            });
+        fetch(BASE_URL + "fund")
+            .then((res) => res.json())
+            .then((data) => {
+                setFunds(data.data)
             });
     }, [id]);
 
@@ -233,8 +247,8 @@ const ViewCustomer: NextPage = () => {
                                                         <Td>{fundAllocation.userInvestedBalance}</Td>
                                                         <Td>{fundAllocation.fundInvestmentBalance}</Td>
                                                         <Td>
-                                                            <Button onClick={() => {openModal(TransactionType.DEPOSIT_FUND); setSelectedFundId(fundAllocation.id)}}>Deposit</Button>
-                                                            <Button onClick={() => {openModal(TransactionType.WITHDRAW_FUND); setSelectedFundId(fundAllocation.id)}}>Withdraw</Button>
+                                                            <Button onClick={() => { openModal(TransactionType.DEPOSIT_FUND); setSelectedFundId(fundAllocation.id) }}>Deposit</Button>
+                                                            <Button onClick={() => { openModal(TransactionType.WITHDRAW_FUND); setSelectedFundId(fundAllocation.id) }}>Withdraw</Button>
                                                         </Td>
                                                     </Tr>
                                                 );
@@ -244,6 +258,7 @@ const ViewCustomer: NextPage = () => {
                                 </Tbody>
                             </Table>
                         </TableContainer>
+                        <Button onClick={() => openModal(TransactionType.DEPOSIT_FUND)}>Deposit new fund</Button>
                         <Text fontSize='2xl'>Trade History</Text>
                         <TableContainer>
                             <Table>
@@ -254,6 +269,7 @@ const ViewCustomer: NextPage = () => {
                                         <Th>Ending Balance</Th>
                                         <Th>Transaction Amount</Th>
                                         <Th>Transaction Type</Th>
+                                        <Th>Fund (If any)</Th>
                                     </Tr>
                                 </Thead>
                                 <Tbody>
@@ -267,6 +283,11 @@ const ViewCustomer: NextPage = () => {
                                                         <Td>{tradeHistory.endingBalance}</Td>
                                                         <Td>{tradeHistory.transactionAmount}</Td>
                                                         <Td>{TransactionTypeString[tradeHistory.transactionType]}</Td>
+                                                        <Td>{tradeHistory.fundId} - {
+                                                            funds && (
+                                                                funds.find((fund) => fund.id == tradeHistory.fundId)?.fundName
+                                                            )
+                                                        }</Td>
                                                     </Tr>
                                                 );
                                             })}
@@ -284,6 +305,29 @@ const ViewCustomer: NextPage = () => {
                         <ModalContent>
                             <ModalHeader>Enter Amount</ModalHeader>
                             <ModalCloseButton />
+
+                            {
+                                !selectedFundId && (
+                                    <>
+                                        <ModalBody pb={6}>
+                                            <FormControl mt={4}>
+                                                <FormLabel>Fund</FormLabel>
+                                                <Select placeholder='select funds' onChange={(e) => {setNewFundId(parseInt(e.target.value))}}>
+                                                    {funds && (
+                                                        <>
+                                                            {funds.map((fund: Fund) => {
+                                                                return (
+                                                                    <option key={fund.id} value={fund.id}>{fund.fundName}</option>
+                                                                );
+                                                            })}
+                                                        </>
+                                                    )}
+                                                </Select>
+                                            </FormControl>
+                                        </ModalBody>
+                                    </>
+                                )
+                            }
 
                             <ModalBody pb={6}>
                                 <FormControl mt={4}>
