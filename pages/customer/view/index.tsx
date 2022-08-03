@@ -307,7 +307,7 @@ const ViewCustomer: NextPage = () => {
                             <ModalCloseButton />
 
                             {
-                                !selectedFundId && (
+                                !selectedFundId && transactionType === TransactionType.DEPOSIT_FUND && (
                                     <>
                                         <ModalBody pb={6}>
                                             <FormControl mt={4}>
